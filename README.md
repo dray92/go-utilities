@@ -12,3 +12,6 @@ go get github.com/dray92/go-utilities
 
 * file io
     * afero-based file read
+* security
+    * parsing x509 certificates and rsa keys
+    * generating intermediate and leaf certs
