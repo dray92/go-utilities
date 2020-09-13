@@ -25,19 +25,6 @@ func ParseX509Cert(pemEncodedCert []byte) (*x509.Certificate, error) {
 	return cert, nil
 }
 
-// ParsePrivateKey returns the rsa private key repr for a pem-encoded private key.
-func ParsePrivateKey(pemEncodedRSAPvtKey []byte) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode(_testRootPvtKey)
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the key")
-	}
-	privKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse private key")
-	}
-	return privKey.(*rsa.PrivateKey), nil
-}
-
 // GenerateIntermediateCert generates an intermediate cerdt from the given parent
 func GenerateIntermediateCert(
 	parent, settingsTemplate *x509.Certificate,
@@ -100,7 +87,8 @@ func GenerateLeafCert(
 	return generateX509Cert(parent, &templateCopy, parentPrivKey)
 }
 
-// VerifyLeafCert verifies a leaf certificate. Not sure if it is currently walking up the chain correctly.
+// VerifyLeafCert verifies a leaf certificate.
+// TODO: Not sure if it is currently walking up the chain correctly.
 func VerifyLeafCert(root, child *x509.Certificate, intermediates ...*x509.Certificate) (bool, [][]*x509.Certificate, error) {
 	roots := x509.NewCertPool()
 	intermediatePool := x509.NewCertPool()
@@ -121,6 +109,8 @@ func VerifyLeafCert(root, child *x509.Certificate, intermediates ...*x509.Certif
 	return true, chain, nil
 }
 
+// generateX509Cert generates a leaf certificate and a 2048-bit rsa key.
+// byte slices contain pem-encoded cert, and pem-encoded pkcs8 rsa private key.
 func generateX509Cert(
 	parent, template *x509.Certificate,
 	parentPrivKey *rsa.PrivateKey,
@@ -142,7 +132,10 @@ func generateX509Cert(
 	b := pem.Block{Type: "CERTIFICATE", Bytes: certBytes}
 	pemEncodedCert := pem.EncodeToMemory(&b)
 
-	privBytes := x509.MarshalPKCS1PrivateKey(priv)
+	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "failed to marshal private key")
+	}
 	pemEncodedPrivKey := pem.EncodeToMemory(
 		&pem.Block{
 			Type:  "RSA PRIVATE KEY",
