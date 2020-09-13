@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/afero"
 )
 
+// GetContents returns the contents of a filepath, by reading it from the provided filesystem.
 func GetContents(fs afero.Fs, filename string) ([]byte, error) {
 	handle, err := fs.Open(filename)
 	if err != nil {
